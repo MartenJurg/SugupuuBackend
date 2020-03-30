@@ -1,8 +1,11 @@
 package SugupuuBackend.controller;
 
 import SugupuuBackend.model.FamilyTree;
+import SugupuuBackend.model.Gender;
+import SugupuuBackend.model.Person;
 import SugupuuBackend.pojo.FamilyTreeDto;
 import SugupuuBackend.service.FamilyTreeService;
+import SugupuuBackend.service.PersonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,9 @@ public class FamilyTreeController {
     @Autowired
     FamilyTreeService familyTreeService;
 
+    @Autowired
+    PersonService personService;
+
     @GetMapping("/getAll")
     public List<FamilyTree> getAll() {
         return familyTreeService.getAllFamilyTrees();
@@ -34,7 +40,10 @@ public class FamilyTreeController {
 
     @PostMapping("/add")
     public void addFamilyTree(@RequestBody FamilyTreeDto familyTreeDto) {
-        familyTreeService.saveFamilyTree(new FamilyTree(familyTreeDto));
+        if (familyTreeDto.getName().equals("")) return;
+        FamilyTree familyTree = new FamilyTree(familyTreeDto);
+        familyTreeService.saveFamilyTree(familyTree);
+        personService.savePerson(new Person("First", "Person", 20, Gender.MALE, familyTree.getId()));
     }
 
     @PostMapping("/delete/{id}")

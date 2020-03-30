@@ -1,6 +1,8 @@
 package SugupuuBackend;
 
+import SugupuuBackend.model.FamilyTree;
 import SugupuuBackend.model.Person;
+import SugupuuBackend.repository.FamilyTreeRepository;
 import SugupuuBackend.repository.PersonRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -12,19 +14,6 @@ public class SugupuuBackendApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(SugupuuBackendApplication.class, args);
-	}
-
-	@Bean
-	public CommandLineRunner initUser(PersonRepository personRepository) {
-		return (args) -> {
-			Person person = new Person(
-					"Marten",
-					"Jurg",
-					20,
-					"M"
-			);
-			personRepository.save(person);
-		};
 	}
 
 }

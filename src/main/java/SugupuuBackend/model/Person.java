@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 @Getter
 @Setter
@@ -18,12 +19,12 @@ public class Person {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    private String firstName;
-    private String lastName;
-    private int age;
-    private String gender;
-    private Long familyTreeId;
+
+    @NotBlank private String firstName;
+    @NotBlank private String lastName;
+    @NotNull private int age;
+    @NotBlank private String gender;
+    @NotNull private Long familyTreeId;
 
 
     public Person(PersonDto personDto) {
@@ -34,7 +35,7 @@ public class Person {
         this.familyTreeId = personDto.getFamilyTreeId();
     }
 
-    public Person(@NotBlank String firstName, String lastName, int age, String gender, Long familyTreeId) {
+    public Person(@NotBlank String firstName, @NotBlank String lastName, @NotNull int age, @NotBlank String gender, @NotNull Long familyTreeId) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.age = age;

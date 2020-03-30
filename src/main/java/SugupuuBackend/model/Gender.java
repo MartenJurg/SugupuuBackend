@@ -2,6 +2,6 @@ package SugupuuBackend.model;
 
 public class Gender {
 
-    public static final String MALE = "M";
-    public static final String FEMALE = "F";
+    public static final String MALE = "MALE";
+    public static final String FEMALE = "FEMALE";
 }

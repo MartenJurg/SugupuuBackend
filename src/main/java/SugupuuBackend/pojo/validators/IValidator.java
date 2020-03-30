@@ -1,7 +1,9 @@
 package SugupuuBackend.pojo.validators;
 
 import SugupuuBackend.pojo.PersonDto;
+import org.springframework.stereotype.Component;
 
+@Component
 public interface IValidator {
-    public boolean validate(PersonDto child, Long personId);
+    public void validate(PersonDto child, Long personId);
 }

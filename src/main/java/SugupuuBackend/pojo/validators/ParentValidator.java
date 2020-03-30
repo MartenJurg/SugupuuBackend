@@ -9,10 +9,13 @@ import SugupuuBackend.pojo.PersonDto;
 import SugupuuBackend.service.PersonService;
 import SugupuuBackend.service.PersonToChildConnectionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.util.List;
 import java.util.Optional;
 
+@Component
 public class ParentValidator implements IValidator {
 
     @Autowired
@@ -22,7 +25,7 @@ public class ParentValidator implements IValidator {
     PersonToChildConnectionService personToChildConnectionService;
 
     @Override
-    public boolean validate(PersonDto parent, Long personId) {
+    public void validate(PersonDto parent, Long personId) {
         // Find person from repository
         Optional<Person> person = personService.getPersonById(personId);
         // Find all the parents for this person.
@@ -30,7 +33,6 @@ public class ParentValidator implements IValidator {
 
         if (person.isEmpty()) throw new PersonNotFoundException();
         else if (parent.getAge() < person.get().getAge()) throw new ParentTooYoungException();
-        else if (parents.size() > 2) throw new TooManyParentsException();
-        return true;
+        else if (parents.size() >= 2) throw new TooManyParentsException();
     }
 }
