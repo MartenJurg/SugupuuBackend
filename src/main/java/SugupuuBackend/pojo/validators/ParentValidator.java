@@ -1,8 +1,6 @@
 package SugupuuBackend.pojo.validators;
 
-import SugupuuBackend.exceptions.ParentTooYoungException;
-import SugupuuBackend.exceptions.PersonNotFoundException;
-import SugupuuBackend.exceptions.TooManyParentsException;
+import SugupuuBackend.exceptions.ApiRequestExcepiton;
 import SugupuuBackend.model.Person;
 import SugupuuBackend.model.PersonToChildConnection;
 import SugupuuBackend.pojo.PersonDto;
@@ -11,7 +9,6 @@ import SugupuuBackend.service.PersonToChildConnectionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,8 +28,8 @@ public class ParentValidator implements IValidator {
         // Find all the parents for this person.
         List<PersonToChildConnection> parents = personToChildConnectionService.getConnectionsByChildId(personId);
 
-        if (person.isEmpty()) throw new PersonNotFoundException();
-        else if (parent.getAge() < person.get().getAge()) throw new ParentTooYoungException();
-        else if (parents.size() >= 2) throw new TooManyParentsException();
+        if (person.isEmpty()) throw new ApiRequestExcepiton("Person not found!");
+        else if (parent.getAge() < person.get().getAge()) throw new ApiRequestExcepiton("Parent is too young!");
+        else if (parents.size() >= 2) throw new ApiRequestExcepiton("Person already ahs 2 parents!");
     }
 }

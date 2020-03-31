@@ -11,10 +11,9 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 public class FamilyTreeDto {
 
-    @NotBlank
     private String name;
 
-    public FamilyTreeDto(@NotBlank String name) {
+    public FamilyTreeDto(String name) {
         this.name = name;
     }
 }

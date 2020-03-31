@@ -5,6 +5,7 @@ import SugupuuBackend.model.PartnerConnection;
 import SugupuuBackend.model.Person;
 import SugupuuBackend.model.PersonToChildConnection;
 import SugupuuBackend.pojo.PersonDto;
+import SugupuuBackend.pojo.PredecessorsHelper;
 import SugupuuBackend.pojo.validators.*;
 import SugupuuBackend.service.PartnerConnectionService;
 import SugupuuBackend.service.PersonService;
@@ -15,8 +16,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -41,72 +45,83 @@ public class PersonController {
     @Autowired
     private PartnerValidator partnerValidator;
 
+    @Autowired PersonDtoValidator personDtoValidator;
+
     @Autowired
     private UpdatePersonValidator updatePersonValidator;
 
+    @Autowired
+    private PredecessorsHelper predecessorsHelper;
+
     @PostMapping("/addChild/{id}")
     public ResponseEntity<?> addChildToPerson(@RequestBody PersonDto childDto, @PathVariable Long id) {
-        try {
-            // Try to validate
-            childValidator.validate(childDto, id);
+        // Try to validate
+        personDtoValidator.validate(childDto);
+        childValidator.validate(childDto, id);
 
-            // Create new person and add it to the repository
-            Person child = new Person(childDto);
-            personService.savePerson(child);
+        // Create new person and add it to the repository
+        Person child = new Person(childDto);
+        personService.savePerson(child);
 
-            // Create connection between two people
-            personToChildConnectionService.saveConnection(new PersonToChildConnection(id, child.getId(), child.getFamilyTreeId()));
-
-            return new ResponseEntity<>(child, HttpStatus.OK);
-        } catch (PersonNotFoundException | ChildTooOldException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+        // Create connection between two people
+        personToChildConnectionService.saveConnection(new PersonToChildConnection(id, child.getId(), child.getFamilyTreeId()));
+        return new ResponseEntity<>(child, HttpStatus.OK);
     }
 
     @PostMapping("/addParent/{id}")
     public ResponseEntity<?> addParentToPerson(@RequestBody PersonDto parentDto, @PathVariable Long id) {
-        try {
-            // Try to validate
-            parentValidator.validate(parentDto, id);
+        // Try to validate
+        personDtoValidator.validate(parentDto);
+        parentValidator.validate(parentDto, id);
 
-            // Create new person and add it to the repository
-            Person parent = new Person(parentDto);
-            personService.savePerson(parent);
+        // Create new person and add it to the repository
+        Person parent = new Person(parentDto);
+        personService.savePerson(parent);
 
-            // Create connection between two people
-            personToChildConnectionService.saveConnection(new PersonToChildConnection(parent.getId(), id, parent.getFamilyTreeId()));
-
-            return new ResponseEntity<>(parent, HttpStatus.OK);
-        } catch (ParentTooYoungException | PersonNotFoundException | TooManyParentsException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        // If person already has 1 parent then add partner connection aswell
+        boolean makeCurrent;
+        if (personService.getParents(id).size() == 1) {
+            if (personService.getPartner(id).size() == 1) {
+                // Create new connection
+                makeCurrent = false;
+            } else {
+                makeCurrent = true;
+            }
+            partnerConnectionService.save(
+                    new PartnerConnection(
+                            personService.getParents(id).get(0).getId(),
+                            parent.getId(),
+                            makeCurrent,
+                            parent.getFamilyTreeId()));
         }
+
+        // Create connection between two people
+        personToChildConnectionService.saveConnection(new PersonToChildConnection(parent.getId(), id, parent.getFamilyTreeId()));
+        return new ResponseEntity<>(parent, HttpStatus.OK);
+
     }
 
     @PostMapping("/addPartner/{id}")
     public ResponseEntity<?> addPartnerToPerson(@RequestBody PersonDto partnerDto, @PathVariable Long id) {
-        try {
-            // Try to validate
-            System.out.println(partnerDto);
-            System.out.println(id);
-            partnerValidator.validate(partnerDto, id);
 
-            // Create new person and add it to the repository
-            Person partner = new Person(partnerDto);
-            personService.savePerson(partner);
 
-            PartnerConnection partnerConnection = new PartnerConnection(partner.getId(), id, true, partner.getFamilyTreeId());
+        // Try to validate
+        personDtoValidator.validate(partnerDto);
+        partnerValidator.validate(partnerDto, id);
 
-            // Create partner connection
-            partnerConnectionService.save(partnerConnection);
+        // Create new person and add it to the repository
+        Person partner = new Person(partnerDto);
+        personService.savePerson(partner);
+        PartnerConnection partnerConnection = new PartnerConnection(partner.getId(), id, true, partner.getFamilyTreeId());
 
-            return new ResponseEntity<>(partner, HttpStatus.OK);
-        } catch (PersonNotFoundException | PartnerAlreadyExistsException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+        // Create partner connection
+        partnerConnectionService.save(partnerConnection);
+        return new ResponseEntity<>(partner, HttpStatus.OK);
     }
 
     @PostMapping("/addExPartner/{id}")
     public ResponseEntity<?> addExPartnerToPerson(@RequestBody PersonDto partnerDto, @PathVariable Long id) {
+        personDtoValidator.validate(partnerDto);
         Person partner = new Person(partnerDto);
         personService.savePerson(partner);
         PartnerConnection partnerConnection = new PartnerConnection(partner.getId(), id, false, partner.getFamilyTreeId());
@@ -118,18 +133,20 @@ public class PersonController {
 
     @PostMapping("/update/{id}")
     public ResponseEntity<?> updatePerson(@RequestBody PersonDto personDto, @PathVariable Long id) {
-        try {
-            updatePersonValidator.validate(personDto, id);
-            personService.updatePerson(personDto, id);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (InvalidAgeInsertedException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+        personDtoValidator.validate(personDto);
+        updatePersonValidator.validate(personDto, id);
+        personService.updatePerson(personDto, id);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/all")
     public List<Person> getAll() {
         return personService.getAll();
+    }
+
+    @GetMapping("/search/{pattern}/{id}")
+    public List<Person> getSearchResults(@PathVariable String pattern, @PathVariable Long id) {
+        return personService.getSearchResult(pattern, id);
     }
 
     @GetMapping("/get/{id}")
@@ -144,79 +161,104 @@ public class PersonController {
 
     @GetMapping("/getParents/{id}")
     public List<Person> getParents(@PathVariable Long id) {
-        List<PersonToChildConnection> connections = personToChildConnectionService.getConnectionsByChildId(id);
-        if (connections.isEmpty()) return new ArrayList<>();
-        return personService.getParents(id, connections);
+        return personService.getParents(id);
     }
 
     @GetMapping("/getChildren/{id}")
     public List<Person> getChildren(@PathVariable Long id) {
-        List<PersonToChildConnection> connections = personToChildConnectionService.getConnectionsByPersonId(id);
-        if (connections.isEmpty()) return new ArrayList<>();
-        return personService.getChildren(id, connections);
+        return personService.getChildren(id);
     }
 
     @GetMapping("/getPartner/{id}")
     public List<Person> getPartner(@PathVariable Long id) {
-
-        Optional<PartnerConnection> connection = partnerConnectionService.getCurrentPartnerConnection(id);
-        if (connection.isEmpty()) return new ArrayList<>();
-        Optional<Person> person;
-        if (connection.get().getPerson1Id().equals(id)) {
-            person =  personService.getPersonById(connection.get().getPerson2Id());
-        } else {
-            person = personService.getPersonById(connection.get().getPerson1Id());
-
-        }
-        if (person.isPresent()) {
-            ArrayList<Person> people = new ArrayList<>();
-            people.add(person.get());
-            return people;
-        }
-        return new ArrayList<>();
+        return personService.getPartner(id);
     }
 
     @GetMapping("/getExPartners/{id}")
     public List<Person> getExPartner(@PathVariable Long id) {
-
-        List<PartnerConnection> connections = partnerConnectionService.getExPartnersConnections(id);
-        if (connections.isEmpty()) return new ArrayList<>();
-
-        ArrayList<Person> partners = new ArrayList<>();
-        for (PartnerConnection connection : connections) {
-
-            if (connection.getPerson1Id().equals(id)) {
-                if (personService.getPersonById(connection.getPerson2Id()).isPresent()) {
-                    partners.add(personService.getPersonById(connection.getPerson2Id()).get());
-                }
-            } else {
-                if (personService.getPersonById(connection.getPerson1Id()).isPresent()) {
-                    partners.add(personService.getPersonById(connection.getPerson1Id()).get());
-                }
-            }
-        }
-        return partners;
+        return personService.getExPartners(id);
     }
 
     @GetMapping("/getAllPartners/{id}")
-    public List<Person> getAllPartner(@PathVariable Long id) {
+    public List<Person> getAllPartners(@PathVariable Long id) {
+        return personService.getAllPartners(id);
+    }
 
-        List<PartnerConnection> connections = partnerConnectionService.getAllConnectionsById(id);
-        if (connections.isEmpty()) return new ArrayList<>();
+    @GetMapping("/getAllSiblingsOf/{id}")
+    public List<Person> getAllSiblings(@PathVariable Long id) {
+        // Sorted by age
+        return personService.getAllSiblings(id).stream()
+                .sorted(Comparator.comparing(Person::getAge))
+                .collect(Collectors.toList());
+    }
 
-        ArrayList<Person> partners = new ArrayList<>();
-        for (PartnerConnection connection : connections) {
+    @GetMapping("/getHalfSiblingsOf/{id}")
+    public List<Person> getHalfSiblings(@PathVariable Long id) {
+        // Sorted by age
+        return personService.getHalfSiblings(id).stream()
+                .sorted(Comparator.comparing(Person::getAge))
+                .collect(Collectors.toList());
+    }
 
-            if (connection.getPerson1Id().equals(id)) {
-                if (personService.getPersonById(connection.getPerson2Id()).isPresent()) {
-                    partners.add(personService.getPersonById(connection.getPerson2Id()).get());
-                }
-            } else {
-                if (personService.getPersonById(connection.getPerson1Id()).isPresent()) {
-                    partners.add(personService.getPersonById(connection.getPerson1Id()).get());
-                }
-            }
+    @GetMapping("/getRealSiblingsOf/{id}")
+    public List<Person> getRealSiblings(@PathVariable Long id) {
+        // Sorted by age
+        return personService.getRealSiblings(id).stream()
+                .sorted(Comparator.comparing(Person::getAge))
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/getPersonWithMostPredecessors")
+    public Person getPersonWithMostPredecessors() {
+        return predecessorsHelper.getPersonWithMostPredecessors();
+    }
+
+    @GetMapping("/getPersonsPredecessors/{id}")
+    public List<Person> getPersonsPredecessors(@PathVariable Long id) {
+        return predecessorsHelper.getPredecessorsOf(id).stream()
+                .sorted(Comparator.comparing(Person::getAge))
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/getYoungestUncleOrAunt/{id}")
+    public Optional<Person> getYoungestUncleOrAunt(@PathVariable Long id) {
+        Optional<Person> person = personService.getPersonById(id);
+        if (person.isPresent()) {
+            List<Person> parents = personService.getParents(person.get().getId());
+            List<Person> unclesAndAunts = new ArrayList<>();
+            parents.forEach(parent -> unclesAndAunts.addAll(personService.getRealSiblings(parent.getId())));
+            if (unclesAndAunts.isEmpty()) return Optional.empty();
+            return Optional.of(unclesAndAunts.stream()
+                    .sorted(Comparator.comparing(Person::getAge))
+                    .collect(Collectors.toList()).get(0));
         }
-        return partners;
+        return Optional.empty();
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

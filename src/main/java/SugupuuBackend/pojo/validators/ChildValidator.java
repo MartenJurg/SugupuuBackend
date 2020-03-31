@@ -1,14 +1,12 @@
 package SugupuuBackend.pojo.validators;
 
-import SugupuuBackend.exceptions.ChildTooOldException;
-import SugupuuBackend.exceptions.PersonNotFoundException;
+import SugupuuBackend.exceptions.ApiRequestExcepiton;
 import SugupuuBackend.model.Person;
 import SugupuuBackend.pojo.PersonDto;
 import SugupuuBackend.service.PersonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.Optional;
 
 @Component
@@ -22,7 +20,7 @@ public class ChildValidator implements IValidator {
         // Find person from repository
         Optional<Person> person = personService.getPersonById(personId);
 
-        if (person.isEmpty()) throw new PersonNotFoundException();
-        else if (child.getAge() > person.get().getAge()) throw new ChildTooOldException();
+        if (person.isEmpty()) throw new ApiRequestExcepiton("Person not found!");
+        else if (child.getAge() >= person.get().getAge()) throw new ApiRequestExcepiton("Child cant be older than parent!");
     }
 }
