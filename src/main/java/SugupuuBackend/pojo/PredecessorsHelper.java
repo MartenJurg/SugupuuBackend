@@ -24,7 +24,6 @@ public class PredecessorsHelper {
     PartnerConnectionService partnerConnectionService;
 
     public List<Person> getPredecessorsOf(Long id) {
-        System.out.println("ADDING" );
         Optional<Person> person = personService.getPersonById(id);
         return person.map(this::predecessorsSearch).orElseGet(ArrayList::new);
     }

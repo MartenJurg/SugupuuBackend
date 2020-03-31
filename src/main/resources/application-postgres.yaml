@@ -1,0 +1,24 @@
+server:
+  port: 8000
+  servlet:
+    context-path: /api
+
+
+spring:
+  jackson:
+    default-property-inclusion: non_null
+  jpa:
+    generate-ddl: true
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+          temp:
+            use_jpa_metadata_defaults: false
+          hibernate:
+            ddl-auto: none
+  datasource:
+    url: jdbc:postgresql://localhost:5632/postgres
+    username: root
+    password: root

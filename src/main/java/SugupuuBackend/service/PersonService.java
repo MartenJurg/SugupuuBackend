@@ -8,7 +8,6 @@ import SugupuuBackend.repository.PersonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -60,6 +59,7 @@ public class PersonService {
     public List<Person> getParents(Long id) {
         List<PersonToChildConnection> connections = personToChildConnectionService.getConnectionsByChildId(id);
         if (connections.isEmpty()) return new ArrayList<>();
+
         ArrayList<Person> parents = new ArrayList<>();
         for (PersonToChildConnection connection : connections) {
             if (getPersonById(connection.getPersonId()).isPresent()) {
@@ -72,6 +72,7 @@ public class PersonService {
     public List<Person> getChildren(Long id) {
         List<PersonToChildConnection> connections = personToChildConnectionService.getConnectionsByPersonId(id);
         if (connections.isEmpty()) return new ArrayList<>();
+
         ArrayList<Person> children = new ArrayList<>();
         for (PersonToChildConnection connection : connections) {
             if (getPersonById(connection.getChildId()).isPresent()) {
